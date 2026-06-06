@@ -1,44 +1,42 @@
 import streamlit as st
 import streamlit.components.v1 as components
-from pyecharts import options as opts
-from pyecharts.charts import MapGlobe
 
 # Streamlit 페이지 설정
 st.set_page_config(page_title="3D Interactive Globe", layout="wide")
 st.title("🌍 3D 대화형 진짜 지구 모형")
 st.markdown("마우스 왼쪽 버튼으로 **지구를 잡고 이리저리 돌려볼 수 있으며**, 스크롤로 **확대/축소**가 가능합니다.")
 
-# 3D 지구본 컴포넌트 생성 (pyecharts 활용)
-# 별도의 토큰 없이 실제 세계 지도 데이터가 구체에 매핑됩니다.
-globe = (
-    MapGlobe()
-    .add_schema(
-        maptype="world",
-        itemstyle_opts=opts.ItemStyleOpts(
-            color="#2e5c8a",          # 대륙 색상
-            border_color="#111",      # 국경선 색상
-        ),
-        background_color="#0f172a"    # 우주 배경 색상 (다크 모드)
-    )
-    .add(
-        series_name="",
-        data_pair=[],
-        is_map_symbol_show=False,
-    )
-    .set_global_opts(
-        title_opts=opts.TitleOpts(title="진짜 지구 모형 (3D Globe)", pos_left="center", title_textstyle_opts=opts.TextStyleOpts(color="#fff")),
-        visualmap_opts=opts.VisualMapOpts(is_show=False),
-    )
-)
+# CDN을 통해 Globe.gl 라이브러리를 불러오고 실제 지구 이미지를 매핑하는 콤팩트한 HTML/JS 코드
+html_code = """
+<!DOCTYPE html>
+<html>
+<head>
+  <style> body { margin: 0; background-color: #0f172a; overflow: hidden; } </style>
+  <script src="//unpkg.com/globe.gl"></script>
+</head>
+<body>
+  <div id="globeViz"></div>
 
-# Streamlit 환경에서 html로 렌더링하기 위해 차트 빌드
-globe.render("globe.html")
+  <script>
+    const myGlobe = Globe()
+      (document.getElementById('globeViz'))
+      // 실제 지구의 대륙과 바다가 표현된 전용 텍스처 이미지를 입힙니다.
+      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+      // 입체감을 위한 지형 밤 비주얼 스타일 추가 (선택사항)
+      .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
+      .width(window.innerWidth)
+      .height(window.innerHeight - 50);
 
-# 생성된 HTML 파일을 읽어서 Streamlit 화면에 주입
-with open("globe.html", "r", encoding="utf-8") as f:
-    html_data = f.read()
+    // 창 크기가 바뀔 때 지구본 크기도 자동으로 조절되도록 설정
+    window.addEventListener('resize', () => {
+      myGlobe.width(window.innerWidth).height(window.innerHeight - 50);
+    });
+  </script>
+</body>
+</html>
+"""
 
-# 화면에 3D 지구본 표시 (너비와 높이 조절 가능)
-components.html(html_data, height=750, scrolling=False)
+# Streamlit의 components 기능을 이용해 렌더링 (가장 안전하고 오류 없음)
+components.html(html_code, height=750, scrolling=False)
 
-st.info("💡 마우스 드래그를 통해 대륙과 바다의 위치를 구석구석 돌려가며 확인해 보세요!")
+st.info("💡 마우스 드래그를 통해 실제 대륙과 바다의 위치를 구석구석 돌려가며 확인해 보세요!")
